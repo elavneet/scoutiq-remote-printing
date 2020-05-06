@@ -17,7 +17,7 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-printISBN = b64 => {
+printISBN = (b64) => {
   console.log(b64);
 
   let base64Data = b64.replace(/^data:image\/\w+;base64,/, "");
@@ -27,27 +27,22 @@ printISBN = b64 => {
     data: dataBuffer,
     type: "JPEG",
     printer: "",
-    success: function(jobID) {
+    success: function (jobID) {
       console.log("sent to printer with ID: " + jobID);
     },
-    error: function(err) {
+    error: function (err) {
       console.log(err);
-    }
+    },
   });
 };
 
-socket.on("welcome", socketid => {
+socket.on("welcome", (socketid) => {
   console.log("message: " + socketid);
   opn("http://localhost:9542/form");
 });
 
-socket.on("print", b64 => {
+socket.on("print", (b64) => {
   printISBN(b64);
-});
-
-socket.on("refresh", () => {
-  console.log("REFRESH RECEIVED");
-  opn("http://localhost:9542/form");
 });
 
 app.post("/login", (req, res) => {
@@ -56,29 +51,29 @@ app.post("/login", (req, res) => {
 
   const data = querystring.stringify({
     user_email: email,
-    user_password: pass
+    user_password: pass,
   });
   let headers = {
     "User-Agent":
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.8; rv:24.0) Gecko/20100101 Firefox/24.0",
-    "Content-Type": "application/x-www-form-urlencoded"
+    "Content-Type": "application/x-www-form-urlencoded",
   };
   axios
     .post("https://piq-api.lavneet.com/v1/user/get_token", data, {
-      headers: headers
+      headers: headers,
     })
-    .then(response => {
+    .then((response) => {
       const res_json = response.data;
       if (res_json.status === true) {
         res.send("<h2>LOGIN SUCCESSFUL!</h2>");
         socket.emit("client_details", {
           user_id: res_json.data.id,
           app_token: res_json.data.app_token,
-          client_type: "server"
+          client_type: "server",
         });
       }
     })
-    .catch(err => {
+    .catch((err) => {
       res.send("Error: " + err);
     });
 });
@@ -95,7 +90,7 @@ app.get("/form", (req, res) => {
   res.send(html);
 });
 
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
   // Website you wish to allow to connect
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
