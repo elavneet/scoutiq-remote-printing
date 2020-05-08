@@ -3,10 +3,14 @@ const cors = require("cors");
 const io = require("socket.io-client");
 const bodyParser = require("body-parser");
 const printer = require("printer");
-const socket = io("https://piq-api.lavneet.com");
 const querystring = require("querystring");
 let axios = require("axios");
 const opn = require("open");
+const fs = require("fs");
+var base64Img = require("base64-img");
+const PDFDocument = require("pdfkit");
+
+const socket = io("https://piq-api.lavneet.com");
 
 // Initialize app by creating an express object
 const app = express();
@@ -17,32 +21,45 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 
-printISBN = (b64) => {
-  console.log(b64);
-
-  let base64Data = b64.replace(/^data:image\/\w+;base64,/, "");
-  let dataBuffer = Buffer.from(base64Data, "base64");
-
-  printer.printDirect({
-    data: dataBuffer,
-    type: "JPEG",
-    printer: "",
-    success: function (jobID) {
-      console.log("sent to printer with ID: " + jobID);
-    },
-    error: function (err) {
-      console.log(err);
-    },
-  });
-};
-
-socket.on("welcome", (socketid) => {
-  console.log("message: " + socketid);
-  opn("http://localhost:9542/form");
-});
-
 socket.on("print", (b64) => {
-  printISBN(b64);
+  var filepath = base64Img.imgSync(b64, "", "tmp");
+  console.log(filepath);
+
+  // Create a document
+  const doc = new PDFDocument({ autoFirstPage: false });
+  let writeStream = fs.createWriteStream("to_print.pdf");
+  doc.pipe(writeStream);
+  var img = doc.openImage("tmp.png");
+  doc.addPage({ size: [img.width, img.height] });
+  // Pipe its output somewhere, like to a file or HTTP response
+  // See below for browser usage
+  doc.image(img, 0, 0);
+  doc.end();
+
+  writeStream.on("finish", function () {
+    fs.readFile("to_print.pdf", function (err, data) {
+      if (!err) {
+        const printer_name = printer.getDefaultPrinterName() || "";
+        console.log("data type is: " + typeof data + ", is buffer: " + Buffer.isBuffer(data));
+        console.log("Printing on: " + printer_name);
+
+        printer.printDirect({
+          data: data,
+          type: "PDF",
+          printer: printer_name,
+          // options: {
+          //   "fit-to-page": true,
+          // },
+          success: function (id) {
+            console.log("printed with id " + id);
+          },
+          error: function (err) {
+            console.error("error on printing: " + err);
+          },
+        });
+      } else console.error("Error reading PDF file:" + err);
+    });
+  });
 });
 
 app.post("/login", (req, res) => {
@@ -93,10 +110,7 @@ app.get("/form", (req, res) => {
 app.use(function (req, res, next) {
   // Website you wish to allow to connect
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
+  res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   res.setHeader("Content-Type", "application/json");
   // Pass to next layer of middleware
   next();

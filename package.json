@@ -5,9 +5,14 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.19.2",
+    "base64-img": "^1.0.4",
+    "canvas": "^2.6.1",
     "cors": "^2.8.5",
+    "dymojs": "^1.1.1",
     "express": "^4.17.1",
+    "jspdf": "^1.5.3",
     "open": "^7.0.3",
+    "pdfkit": "^0.11.0",
     "printer": "^0.4.0",
     "querystring": "^0.2.0",
     "socket.io-client": "^2.3.0"
